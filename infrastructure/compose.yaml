@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    command: ["postgres", "-p", "${POSTGRES_PORT:?POSTGRES_PORT is required}"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_PORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
+      PGPORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
+    ports:
+      - "${DB_BIND_IP:?DB_BIND_IP is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -p \"$${POSTGRES_PORT}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongodb:
+    image: mongo:8
+    command: ["mongod", "--port", "${MONGO_PORT:?MONGO_PORT is required}"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?MONGO_ROOT_USER is required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}
+      MONGO_PORT: ${MONGO_PORT:?MONGO_PORT is required}
+      MONGO_AUTH_SOURCE: ${MONGO_AUTH_SOURCE:?MONGO_AUTH_SOURCE is required}
+      MONGO_DB: ${MONGO_DB:?MONGO_DB is required}
+    ports:
+      - "${DB_BIND_IP:?DB_BIND_IP is required}:${MONGO_PORT:?MONGO_PORT is required}:${MONGO_PORT:?MONGO_PORT is required}"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --port \"$${MONGO_PORT}\" -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--port", "${REDIS_PORT:?REDIS_PORT is required}", "--appendonly", "yes"]
+    environment:
+      REDIS_PORT: ${REDIS_PORT:?REDIS_PORT is required}
+    ports:
+      - "${DB_BIND_IP:?DB_BIND_IP is required}:${REDIS_PORT:?REDIS_PORT is required}:${REDIS_PORT:?REDIS_PORT is required}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p \"$${REDIS_PORT}\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:

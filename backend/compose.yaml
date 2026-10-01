@@ -1,0 +1,33 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "${HOST_BIND_IP:?HOST_BIND_IP is required}:${BACKEND_PORT:?BACKEND_PORT is required}:${BACKEND_PORT:?BACKEND_PORT is required}"
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT:?BACKEND_PORT is required}
+      HOST_BIND_IP: ${HOST_BIND_IP:?HOST_BIND_IP is required}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      MONGODB_HOST: mongodb
+      MONGO_PORT: ${MONGO_PORT:?MONGO_PORT is required}
+      MONGO_ROOT_USER: ${MONGO_ROOT_USER:?MONGO_ROOT_USER is required}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}
+      MONGO_AUTH_SOURCE: ${MONGO_AUTH_SOURCE:?MONGO_AUTH_SOURCE is required}
+      MONGO_DB: ${MONGO_DB:?MONGO_DB is required}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:?REDIS_PORT is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import os, urllib.request; urllib.request.urlopen(\"http://localhost:\" + os.environ[\"BACKEND_PORT\"] + \"/health\", timeout=2)'"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
