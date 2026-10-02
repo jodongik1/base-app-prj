@@ -13,12 +13,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       MONGODB_HOST: mongodb
       MONGO_PORT: ${MONGO_PORT:?MONGO_PORT is required}
-      MONGO_ROOT_USER: ${MONGO_ROOT_USER:?MONGO_ROOT_USER is required}
-      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}
-      MONGO_AUTH_SOURCE: ${MONGO_AUTH_SOURCE:?MONGO_AUTH_SOURCE is required}
+      MONGO_APP_USER: ${MONGO_APP_USER:?MONGO_APP_USER is required}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD is required}
       MONGO_DB: ${MONGO_DB:?MONGO_DB is required}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:?REDIS_PORT is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     depends_on:
       postgres:
         condition: service_healthy

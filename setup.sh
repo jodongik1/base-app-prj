@@ -11,34 +11,27 @@ fi
 
 if [[ ! -f "$project_dir/.env" ]]; then
   umask 077
-  postgres_password="$(LC_ALL=C od -An -N24 -tx1 /dev/urandom | tr -d '[:space:]')"
-  mongo_password="$(LC_ALL=C od -An -N24 -tx1 /dev/urandom | tr -d '[:space:]')"
   env_temp="$(mktemp "$project_dir/.env.tmp.XXXXXX")"
   trap 'rm -f "$env_temp"' EXIT
-
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    case "$line" in
-      POSTGRES_PASSWORD=*) printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" ;;
-      MONGO_ROOT_PASSWORD=*) printf 'MONGO_ROOT_PASSWORD=%s\n' "$mongo_password" ;;
-      *) printf '%s\n' "$line" ;;
-    esac
-  done < "$project_dir/.env.example" > "$env_temp"
-
+  cp "$project_dir/.env.example" "$env_temp"
   mv "$env_temp" "$project_dir/.env"
   trap - EXIT
-  printf 'Created .env with project-specific database passwords. Review ports before starting.\n'
+  printf '.env를 생성했습니다. 로컬 개발용 예시 자격 증명을 확인하세요. 운영용으로 사용하지 마세요.\n'
 else
-  printf 'Existing .env preserved.\n'
+  printf '기존 .env를 유지했습니다.\n'
 fi
+chmod 600 "$project_dir/.env"
 
 if [[ "$mode" == "--start" ]]; then
-  if grep -Eq '^(POSTGRES_PASSWORD|MONGO_ROOT_PASSWORD)=change-me-on-setup$' "$project_dir/.env"; then
-    printf 'Replace placeholder database passwords in .env before starting.\n' >&2
-    exit 1
-  fi
+  for key in POSTGRES_USER POSTGRES_PASSWORD MONGO_ROOT_USER MONGO_ROOT_PASSWORD MONGO_APP_USER MONGO_APP_PASSWORD REDIS_PASSWORD; do
+    if ! grep -Eq "^${key}=.+$" "$project_dir/.env"; then
+      printf '.env의 %s 값이 비어 있습니다.\n' "$key" >&2
+      exit 1
+    fi
+  done
   command -v docker >/dev/null || { printf 'Docker is required to start services.\n' >&2; exit 1; }
   docker compose --env-file "$project_dir/.env" -f "$project_dir/compose.yaml" config --quiet
   docker compose --env-file "$project_dir/.env" -f "$project_dir/compose.yaml" up --build
 else
-  printf 'Start after review: bash setup.sh --start\n'
+  printf '설정 완료 후 실행: bash setup.sh --start\n'
 fi

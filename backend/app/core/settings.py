@@ -18,12 +18,12 @@ class Settings(BaseSettings):
     postgres_db: str
     mongodb_host: str = "localhost"
     mongo_port: int
-    mongo_root_user: str
-    mongo_root_password: str
-    mongo_auth_source: str
+    mongo_app_user: str
+    mongo_app_password: str
     mongo_db: str
     redis_host: str = "localhost"
     redis_port: int
+    redis_password: str
     backend_port: int
     host_bind_ip: str
 

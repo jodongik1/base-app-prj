@@ -9,7 +9,7 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
       PGPORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
     ports:
-      - "${DB_BIND_IP:?DB_BIND_IP is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}"
+      - "${POSTGRES_BIND_IP:?POSTGRES_BIND_IP is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}:${POSTGRES_PORT:?POSTGRES_PORT is required}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,13 +24,17 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?MONGO_ROOT_USER is required}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:?MONGO_DB is required}
+      MONGO_APP_USER: ${MONGO_APP_USER:?MONGO_APP_USER is required}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD is required}
       MONGO_PORT: ${MONGO_PORT:?MONGO_PORT is required}
       MONGO_AUTH_SOURCE: ${MONGO_AUTH_SOURCE:?MONGO_AUTH_SOURCE is required}
       MONGO_DB: ${MONGO_DB:?MONGO_DB is required}
     ports:
-      - "${DB_BIND_IP:?DB_BIND_IP is required}:${MONGO_PORT:?MONGO_PORT is required}:${MONGO_PORT:?MONGO_PORT is required}"
+      - "${MONGO_BIND_IP:?MONGO_BIND_IP is required}:${MONGO_PORT:?MONGO_PORT is required}:${MONGO_PORT:?MONGO_PORT is required}"
     volumes:
       - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --port \"$${MONGO_PORT}\" -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1"]
       interval: 10s
@@ -39,15 +43,16 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--port", "${REDIS_PORT:?REDIS_PORT is required}", "--appendonly", "yes"]
+    command: ["sh", "-c", "exec redis-server --port \"$$REDIS_PORT\" --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     environment:
       REDIS_PORT: ${REDIS_PORT:?REDIS_PORT is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     ports:
-      - "${DB_BIND_IP:?DB_BIND_IP is required}:${REDIS_PORT:?REDIS_PORT is required}:${REDIS_PORT:?REDIS_PORT is required}"
+      - "${REDIS_BIND_IP:?REDIS_BIND_IP is required}:${REDIS_PORT:?REDIS_PORT is required}:${REDIS_PORT:?REDIS_PORT is required}"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -p \"$${REDIS_PORT}\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli -p \"$${REDIS_PORT}\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10

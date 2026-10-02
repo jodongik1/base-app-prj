@@ -19,6 +19,8 @@ fi
 
 for required_file in \
   "$backup_dir/backup.complete" \
+  "$backup_dir/postgres.db" \
+  "$backup_dir/mongodb.db" \
   "$backup_dir/postgres.dump" \
   "$backup_dir/mongodb.archive" \
   "$backup_dir/redis/appendonlydir/appendonly.aof.manifest"; do
@@ -31,7 +33,12 @@ done
 compose=(docker compose --env-file "$env_file" -f "$project_dir/compose.yaml")
 "${compose[@]}" config --quiet
 "${compose[@]}" exec -T postgres pg_restore --list < "$backup_dir/postgres.dump" > /dev/null
-database_name="$("${compose[@]}" exec -T postgres printenv POSTGRES_DB)"
+database_name="$("${compose[@]}" exec -T postgres printenv POSTGRES_DB < /dev/null)"
+mongo_database_name="$("${compose[@]}" exec -T mongodb printenv MONGO_DB < /dev/null)"
+if [[ "$(<"$backup_dir/postgres.db")" != "$database_name" || "$(<"$backup_dir/mongodb.db")" != "$mongo_database_name" ]]; then
+  printf '백업의 PostgreSQL 또는 MongoDB 이름이 현재 .env와 다릅니다. 복원을 중단합니다.\n' >&2
+  exit 1
+fi
 
 printf '복원 대상: %s\n' "$database_name"
 printf 'PostgreSQL, MongoDB, Redis의 현재 데이터를 덮어씁니다. 계속하려면 DB 이름을 입력하세요: '
@@ -97,6 +104,6 @@ docker exec "$helper_id" sh -ec '
 docker stop "$helper_id" >/dev/null
 helper_id=""
 "${compose[@]}" start redis >/dev/null
-"${compose[@]}" exec -T redis sh -c 'redis-cli -p "$REDIS_PORT" ping' | grep -q PONG
+"${compose[@]}" exec -T redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -p "$REDIS_PORT" ping' | grep -q PONG
 
 printf '복원 완료: %s\n' "$backup_dir"
